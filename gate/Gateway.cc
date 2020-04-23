@@ -261,7 +261,7 @@ void Gateway::ZookeeperConnectedHandler() {
 #endif
 		nodePath_ = "/GAME/ProxyServers/" + nodeValue_;
 		//启动时自注册自身节点
-		zkclient_->createNode(nodePath_, nodeValue_, false);
+		zkclient_->createNode(nodePath_, nodeValue_, true);
 		//挂维护中的节点
 		invalidNodePath_ = "/GAME/ProxyServersInvalid/" + nodeValue_;
 	}
@@ -1214,7 +1214,7 @@ bool Gateway::repairServer(servTyE servTy, std::string const& servname, std::str
 				std::string repairnode = pathrepair[servTy] + name;
 				//if (ZNONODE == zkclient_->existsNode(repairnode)) {
 					//创建维护节点
-					//zkclient_->createNode(repairnode, name, false);
+					//zkclient_->createNode(repairnode, name, true);
 					//挂维护中状态
 					clients_[servTy].repair(name);
 					LOG_ERROR << __FUNCTION__ << " --- *** " << "创建维护节点 " << repairnode;
@@ -1246,7 +1246,7 @@ bool Gateway::repairServer(servTyE servTy, std::string const& servname, std::str
 				std::string servicenode = path[servTy] + name;
 				//if (ZNONODE == zkclient_->existsNode(servicenode)) {
 					//创建服务节点
-					//zkclient_->createNode(servicenode, name, false);
+					//zkclient_->createNode(servicenode, name, true);
 					//恢复服务状态
 					clients_[servTy].recover(name);
 					LOG_ERROR << __FUNCTION__ << " --- *** " << "创建服务节点 " << servicenode;
