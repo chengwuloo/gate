@@ -23,7 +23,8 @@
 class Connector;
 
 //@@ TcpClient
-class TcpClient : muduo::noncopyable,
+class TcpClient :
+	public muduo::noncopyable,
 	public std::enable_shared_from_this<TcpClient> {
 public:
 	TcpClient(muduo::net::EventLoop* loop,

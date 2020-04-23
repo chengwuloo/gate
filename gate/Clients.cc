@@ -114,7 +114,7 @@ bool Connector::exists(std::string const& name) /*const*/ {
 	bool exist = false;
 	loop_->runInLoop(
 		std::bind(&Connector::existInLoop, this, name, std::ref(exist), std::ref(bok)));
-	//spin lock until getAllInLoop return
+	//spin lock until asynchronous return
 	while (!bok);
 	return exist;
 }
@@ -125,7 +125,7 @@ size_t const Connector::count() /*const*/ {
 	size_t size = 0;
 	loop_->runInLoop(
 		std::bind(&Connector::countInLoop, this, std::ref(size), std::ref(bok)));
-	//spin lock until getAllInLoop return
+	//spin lock until asynchronous return
 	while (!bok);
 	return size;
 }
@@ -135,7 +135,7 @@ void Connector::get(std::string const& name, ClientConn& client) {
 	bool bok = false;
 	loop_->runInLoop(
 		std::bind(&Connector::getInLoop, this, name, std::ref(client), std::ref(bok)));
-	//spin lock until getAllInLoop return
+	//spin lock until asynchronous return
 	while (!bok);
 }
 
@@ -145,7 +145,7 @@ void Connector::getAll(ClientConnList& clients) {
 	bool bok = false;
 	loop_->runInLoop(
 		std::bind(&Connector::getAllInLoop, this, std::ref(clients), std::ref(bok)));
-	//spin lock until getAllInLoop return
+	//spin lock until asynchronous return
 	while (!bok);
 }
 
