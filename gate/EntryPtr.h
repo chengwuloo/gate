@@ -303,7 +303,8 @@ public:
 	}
 	inline int allocWorkerIndex() {
 		int index = nextPool_.getAndAdd(1) % pool_.size();
-		if (index >= 0XFFFFFFFF) {
+		//nextPool_溢出
+		if (index < 0) {
 			nextPool_.getAndSet(-1);
 			index = nextPool_.addAndGet(1);
 		}
