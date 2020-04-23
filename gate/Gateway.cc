@@ -1491,9 +1491,9 @@ void Gateway::asyncHallHandler(
 		//校验CRC header->len = packet::kHeaderLen + len
 		uint16_t crc = packet::getCheckSum((uint8_t const*)&header->ver, header->len - 4);
 		assert(header->crc == crc);
-			
+
 		TraceMessageID(header->mainID, header->subID);
-			
+		
 		if (
 			header->mainID == ::Game::Common::MAINID::MAIN_MESSAGE_CLIENT_TO_HALL &&
 			header->subID == ::Game::Common::MESSAGE_CLIENT_TO_HALL_SUBID::CLIENT_TO_HALL_LOGIN_MESSAGE_RES &&
@@ -1540,25 +1540,30 @@ void Gateway::asyncHallHandler(
 			pre_header->ok == 1) {
 			//校验userid
 			assert(userid == entryContext->getUserID());
-			std::string gameIp;
-			if (REDISCLIENT.GetUserOnlineInfoIP(userid, gameIp)) {
-				//分配用户游戏服
-				ClientConn client;
-				//异步获取指定游戏服连接
-				clients_[servTyE::kGameTy].clients_->get(gameIp, client);
-				muduo::net::TcpConnectionPtr gameConn(client.second.lock());
-				if (gameConn) {
-					entryContext->setClientConn(servTyE::kGameTy, client);
-				}
-				else {
 
+			ClientConn const& clientConn = entryContext->getClientConn(servTyE::kGameTy);
+			muduo::net::TcpConnectionPtr gameConn(clientConn.second.lock());
+			if (!gameConn) {
+				LOG_ERROR << __FUNCTION__ << " --- *** " << "用户游戏服无效，重新分配";
+				//用户游戏服无效，重新分配
+				std::string gameIp;
+				if (REDISCLIENT.GetUserOnlineInfoIP(userid, gameIp)) {
+					//分配用户游戏服
+					ClientConn clientConn;
+					//异步获取指定游戏服连接
+					clients_[servTyE::kGameTy].clients_->get(gameIp, clientConn);
+					muduo::net::TcpConnectionPtr gameConn(clientConn.second.lock());
+					if (gameConn) {
+						entryContext->setClientConn(servTyE::kGameTy, clientConn);
+					}
+					else {
+
+					}
 				}
 			}
 		}
 		muduo::net::websocket::send(peer, (uint8_t const*)buf->peek() + packet::kPrevHeaderLen, header->len);
-		return;
 	}
-	LOG_ERROR << __FUNCTION__ << " --- *** " << "peer(weakConn.lock()) failed";
 }
 
 #if 0
