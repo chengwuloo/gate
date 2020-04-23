@@ -1538,7 +1538,9 @@ void Gateway::asyncHallHandler(
 			header->mainID == ::Game::Common::MAINID::MAIN_MESSAGE_CLIENT_TO_HALL &&
 			header->subID == ::Game::Common::MESSAGE_CLIENT_TO_HALL_SUBID::CLIENT_TO_HALL_GET_GAME_SERVER_MESSAGE_RES &&
 			pre_header->ok == 1) {
+			//////////////////////////////////////////////////////////////////////////
 			//校验userid
+			//////////////////////////////////////////////////////////////////////////
 			assert(userid == entryContext->getUserID());
 
 			ClientConn const& clientConn = entryContext->getClientConn(servTyE::kGameTy);
