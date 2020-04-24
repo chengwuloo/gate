@@ -133,6 +133,7 @@ void Gateway::onHttpConnection(const muduo::net::TcpConnectionPtr& conn) {
 			//获取EventLoop关联的Bucket
 			int index = context->getBucketIndex();
 			assert(index >= 0 && index < bucketsPool_.size());
+
 			//连接成功，压入桶元素
 			conn->getLoop()->runInLoop(
 				std::bind(&ConnBucket::pushBucket, bucketsPool_[index].get(), entry));
@@ -167,7 +168,7 @@ void Gateway::onHttpMessage(
 	//printf("----------------------------------------------\n");
 	//printf("%.*s\n", buf->readableBytes(), buf->peek());
 
-	//先确定是HTTP数据报文，再解析 ///
+	//先确定是HTTP数据报文，再解析
 	//assert(buf->readableBytes() > 4 && buf->findCRLFCRLF());
 
 	ContextPtr entryContext(boost::any_cast<ContextPtr>(conn->getContext()));
@@ -356,6 +357,7 @@ void Gateway::asyncHttpHandler(muduo::net::WeakTcpConnectionPtr const& weakConn,
 #endif
 		ContextPtr entryContext(boost::any_cast<ContextPtr>(conn->getContext()));
 		assert(entryContext);
+		//获取HttpContext对象
 		muduo::net::HttpContext* httpContext = boost::any_cast<muduo::net::HttpContext>(entryContext->getMutableContext());
 		assert(httpContext);
 		assert(httpContext->gotAll());

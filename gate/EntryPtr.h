@@ -60,6 +60,7 @@ public:
 	inline muduo::net::WeakTcpConnectionPtr const& getWeakConnPtr() {
 		return weakConn_;
 	}
+#if 0
 	~Entry() {
 		muduo::net::TcpConnectionPtr conn(weakConn_.lock());
 		if (conn) {
@@ -81,6 +82,9 @@ public:
 #endif
 		}
 	}
+#else
+	~Entry();
+#endif
 	muduo::net::WeakTcpConnectionPtr weakConn_;
 };
 
