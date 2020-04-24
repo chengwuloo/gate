@@ -240,7 +240,7 @@ void Gateway::asyncHallHandler(
 				}
 			}
 		}
-		muduo::net::websocket::send(peer, (uint8_t const*)buf->peek() + packet::kPrevHeaderLen, header->len);
+		muduo::net::websocket::send(peer, (uint8_t const*)header, header->len);
 	}
 }
 

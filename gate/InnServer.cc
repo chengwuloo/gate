@@ -161,10 +161,8 @@ void Gateway::asyncInnHandler(
 			pre_header->ok == 0) {
 
 		}
-		muduo::net::websocket::send(peer, (uint8_t const*)buf->peek() + packet::kPrevHeaderLen, header->len);
-		return;
+		muduo::net::websocket::send(peer, (uint8_t const*)header, header->len);
 	}
-	LOG_ERROR << __FUNCTION__ << " --- *** " << "peer(entry->getWeakConnPtr().lock()) failed";
 }
 
 //网关服[S]端 <- 推送服[C]端，推送通知服务

@@ -170,17 +170,15 @@ void Gateway::asyncGameHandler(
 		}
 		//命令消息头header_t
 		packet::header_t /*const*/* header = (packet::header_t /*const*/*)(buf->peek() + packet::kPrevHeaderLen);
-			
+		
 		//校验CRC header->len = packet::kHeaderLen + len
 		uint16_t crc = packet::getCheckSum((uint8_t const*)&header->ver, header->len - 4);
 		assert(header->crc == crc);
-			
+		
 		TraceMessageID(header->mainID, header->subID);
-			
-		muduo::net::websocket::send(peer, (uint8_t const*)buf->peek() + packet::kPrevHeaderLen, header->len);
-		return;
+		
+		muduo::net::websocket::send(peer, (uint8_t const*)header, header->len);
 	}
-	LOG_ERROR << __FUNCTION__ << " --- *** " << "peer(entry->getWeakConnPtr().lock()) failed";
 }
 
 //网关服[C]端 -> 游戏服[S]端
