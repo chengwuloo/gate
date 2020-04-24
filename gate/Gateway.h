@@ -299,7 +299,7 @@ private:
 		BufferPtr& buf, int64_t userid);
 
 	//跨网关顶号处理(异地登陆)
-	void onUserReLoginNotify(std::string const& msg);
+	void onUserLoginNotify(std::string const& msg);
 
 	void onUserOfflineHall(ContextPtr const& entryContext);
 
