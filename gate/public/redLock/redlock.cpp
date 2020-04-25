@@ -93,7 +93,11 @@ namespace RedisLock {
 		m_fd = open("/dev/urandom", O_RDONLY);
 		if (m_fd == -1) {
 			//Open error handling
+#if 0
 			printf("Can't open file /dev/urandom\n");
+#else
+			LOG_WARN << __FUNCTION__ << " Can't open file /dev/urandom";
+#endif
 			exit(-1);
 			return false;
 		}
@@ -132,7 +136,11 @@ namespace RedisLock {
 		}
 		lock.m_resource = sdsnew(resource);
 		lock.m_val = val;
-		//printf("Get the unique id is %s\n", val);
+#if 0
+		printf("Get the unique id is %s\n", val);
+#else
+		LOG_WARN << __FUNCTION__ << " Get the unique id is " << val;
+#endif
 		int retryCount = m_retryCount;
 		do {
 			int n = 0;
@@ -148,8 +156,12 @@ namespace RedisLock {
 			//for small TTLs.
 			int drift = (ttl * m_clockDriftFactor) + 2;
 			int validityTime = ttl - ((int)time(NULL) * 1000 - startTime) - drift;
-			//printf("The resource validty time is %d, n is %d, quo is %d\n",
-			//	validityTime, n, m_quoRum);
+#if 0
+			printf("The resource validty time is %d, n is %d, quo is %d\n",
+				validityTime, n, m_quoRum);
+#else
+			LOG_WARN << __FUNCTION__ << " The resource validty time is " << validityTime << ", n is " << n << ", quo is " << m_quoRum;
+#endif
 			if (n >= m_quoRum && validityTime > 0) {
 				lock.m_validityTime = validityTime;
 				return true;
@@ -179,7 +191,11 @@ namespace RedisLock {
 			m_continueLock.m_resource = sdsnew(resource);
 			m_continueLock.m_val = sdsnew(val);
 		}
-		//printf("Get the unique id is %s\n", val);
+#if 0
+		printf("Get the unique id is %s\n", val);
+#else
+		LOG_WARN << __FUNCTION__ << " Get the unique id is " << val;
+#endif
 		int retryCount = m_retryCount;
 		do {
 			int n = 0;
@@ -198,8 +214,12 @@ namespace RedisLock {
 			//for small TTLs.
 			int drift = (ttl * m_clockDriftFactor) + 2;
 			int validityTime = ttl - ((int)time(NULL) * 1000 - startTime) - drift;
-			//printf("The resource validty time is %d, n is %d, quo is %d\n",
-			//	validityTime, n, m_quoRum);
+#if 0
+			printf("The resource validty time is %d, n is %d, quo is %d\n",
+				validityTime, n, m_quoRum);
+#else
+			LOG_WARN << __FUNCTION__ << " The resource validty time is " << validityTime << ", n is " << n << ", quo is " << m_quoRum;
+#endif
 			if (n >= m_quoRum && validityTime > 0) {
 				lock.m_validityTime = validityTime;
 				return true;
@@ -237,6 +257,8 @@ namespace RedisLock {
 		if (reply) {
 #if 0
 			printf("Set return: %s [null == fail, OK == success]\n", reply->str);
+#else
+			LOG_WARN << __FUNCTION__ << " Set return: " << reply->str << " [null == fail, OK == success]";
 #endif
 		}
 		if (reply && reply->str && strcmp(reply->str, "OK") == 0) {
@@ -269,6 +291,8 @@ namespace RedisLock {
 		if (reply) {
 #if 0
 			printf("Set return: %s [null == fail, OK == success]\n", reply->str);
+#else
+			LOG_WARN << __FUNCTION__ << " Set return: " << reply->str << " [null == fail, OK == success]";
 #endif
 		}
 		if (reply && reply->str && strcmp(reply->str, "OK") == 0) {
@@ -314,6 +338,8 @@ namespace RedisLock {
 		if (reply) {
 #if 0
 			printf("RedisCommandArgv return: %lld\n", reply->integer);
+#else
+			LOG_WARN << __FUNCTION__ << " RedisCommandArgv return: " << reply->integer;
 #endif
 		}
 		free(argvlen);
@@ -337,7 +363,11 @@ namespace RedisLock {
 		}
 		else {
 			//读取失败
+#if 0
 			printf("Error: GetUniqueLockId %d\n", __LINE__);
+#else
+			LOG_WARN << __FUNCTION__ << " Error: GetUniqueLockId " << __LINE__;
+#endif
 		}
 		return NULL;
 	}

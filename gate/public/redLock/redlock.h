@@ -45,6 +45,7 @@ extern "C" {
 }
 #endif
 
+#include <muduo/base/Logging.h>
 #include <boost/noncopyable.hpp>
 #include <pthread.h>
 #include <memory>
@@ -165,7 +166,7 @@ namespace RedisLock {
 	class CGuardLock {
 	public:
 		CGuardLock(CRedLock& redLock, const char* resource, const int ttl, bool acquired = true)
-			: redLock_(redLock), lock_(), acquired_(acquired) {
+			: redLock_(redLock), lock_(), acquired_(acquired), resource_(resource) {
 			flag_ = acquired_ ?
 				redLock_.ContinueLock(resource, ttl, lock_) :
 				redLock_.Lock(resource, ttl, lock_);
@@ -173,11 +174,13 @@ namespace RedisLock {
 		~CGuardLock() {
 			//Locked but not ContinueLock
 			if (flag_ && !acquired_) {
+				LOG_WARN << __FUNCTION__ << " Unlock " << resource_;
 				redLock_.Unlock(lock_);
 			}
 		}
 		bool IsLocked() { return flag_; }
 	private:
+		std::string resource_;
 		bool flag_, acquired_;
 		CLock lock_;
 		CRedLock& redLock_;
