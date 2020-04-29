@@ -201,7 +201,7 @@ private:
 		muduo::Timestamp receiveTime);
 
 	void asyncClientHandler(
-		muduo::net::WeakTcpConnectionPtr const& weakConn,
+		WeakEntryPtr const& weakEntry,
 		BufferPtr& buf,
 		muduo::Timestamp receiveTime);
 
@@ -254,7 +254,7 @@ private:
 
 	void onHttpMessage(const muduo::net::TcpConnectionPtr& conn, muduo::net::Buffer* buf, muduo::Timestamp receiveTime);
 
-	void asyncHttpHandler(muduo::net::WeakTcpConnectionPtr const& weakConn, muduo::Timestamp receiveTime);
+	void asyncHttpHandler(WeakEntryPtr const& weakEntry, muduo::Timestamp receiveTime);
 	
 	static std::string getRequestStr(muduo::net::HttpRequest const& req);
 	

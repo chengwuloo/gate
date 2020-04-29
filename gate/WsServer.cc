@@ -96,7 +96,7 @@ void Gateway::onConnection(const muduo::net::TcpConnectionPtr& conn) {
 		EventLoopContextPtr context = boost::any_cast<EventLoopContextPtr>(conn->getLoop()->getContext());
 		assert(context);
 		
-		EntryPtr entry(new Entry(muduo::net::WeakTcpConnectionPtr(conn)));
+		EntryPtr entry(new Entry(Entry::TypeE::TcpTy, muduo::net::WeakTcpConnectionPtr(conn), "客户端", "网关服"));
 		
 		//指定conn上下文信息
 		ContextPtr entryContext(new Context(WeakEntryPtr(entry)));
@@ -241,7 +241,7 @@ void Gateway::onMessage(
 		ContextPtr entryContext(boost::any_cast<ContextPtr>(conn->getContext()));
 		assert(entryContext);
 		EntryPtr entry(entryContext->getWeakEntryPtr().lock());
-		if (likely(entry)) {
+		if (entry) {
 			{
 				EventLoopContextPtr context = boost::any_cast<EventLoopContextPtr>(conn->getLoop()->getContext());
 				assert(context);
@@ -275,7 +275,7 @@ void Gateway::onMessage(
 				threadPool_[index]->run(
 					std::bind(
 						&Gateway::asyncClientHandler,
-						this, muduo::net::WeakTcpConnectionPtr(conn), buffer, receiveTime));
+						this, entryContext->getWeakEntryPtr(), buffer, receiveTime));
 			}
 			return;
 		}
@@ -286,182 +286,197 @@ void Gateway::onMessage(
 
 //网关服[S]端 <- 客户端[C]端，websocket 异步回调
 void Gateway::asyncClientHandler(
-	muduo::net::WeakTcpConnectionPtr const& weakConn,
+	WeakEntryPtr const& weakEntry,
 	BufferPtr& buf,
 	muduo::Timestamp receiveTime) {
-	LOG_ERROR << __FUNCTION__ << " bufsz = " << buf->readableBytes();
-	if (buf->readableBytes() < packet::kHeaderLen) {
-		//累计未处理请求数
-		numTotalBadReq_.incrementAndGet();
-		return;
-	}
-	//data, dataLen
-	uint8_t const* data = (uint8_t const*)buf->peek();
-	size_t len = buf->readableBytes();
-	//packet::header_t
-	packet::header_t* header = (packet::header_t*)(&data[0]);
-	//校验CRC header->len = packet::kHeaderLen + len
-	//header.len uint16_t
-	//header.crc uint16_t
-	//header.ver ~ header.realsize + protobuf
-	uint16_t crc = packet::getCheckSum(&data[4], /*header->len*/len - 4);
-	if (header->len == len &&
-		header->crc == crc &&
-		header->ver == 1 &&
-		header->sign == HEADER_SIGN) {
-		//锁定conn操作
-		//刚开始还在想，会不会出现超时conn被异步关闭释放掉，而业务逻辑又被处理了，却发送不了的尴尬情况，
-		//假如因为超时entry弹出bucket，引用计数减1，处理业务之前这里使用shared_ptr，持有entry引用计数(加1)，
-		//如果持有失败，说明弹出bucket计数减为0，entry被析构释放，conn被关闭掉了，也就不会执行业务逻辑处理，
-		//如果持有成功，即使超时entry弹出bucket，引用计数减1，但并没有减为0，entry也就不会被析构释放，conn也不会被关闭，
-		//直到业务逻辑处理完并发送，entry引用计数减1变为0，析构被调用关闭conn(如果conn还存在的话，业务处理完也会主动关闭conn)
-		muduo::net::TcpConnectionPtr peer(weakConn.lock());
+	//刚开始还在想，会不会出现超时conn被异步关闭释放掉，而业务逻辑又被处理了，却发送不了的尴尬情况，
+	//假如因为超时entry弹出bucket，引用计数减1，处理业务之前这里使用shared_ptr，持有entry引用计数(加1)，
+	//如果持有失败，说明弹出bucket计数减为0，entry被析构释放，conn被关闭掉了，也就不会执行业务逻辑处理，
+	//如果持有成功，即使超时entry弹出bucket，引用计数减1，但并没有减为0，entry也就不会被析构释放，conn也不会被关闭，
+	//直到业务逻辑处理完并发送，entry引用计数减1变为0，析构被调用关闭conn(如果conn还存在的话，业务处理完也会主动关闭conn)
+	//
+	//锁定同步业务操作，先锁超时对象entry，再锁conn，避免超时和业务同时处理的情况
+	EntryPtr entry(weakEntry.lock());
+	if (entry) {
+		muduo::net::TcpConnectionPtr peer(entry->getWeakConnPtr().lock());
 		if (peer) {
- 			//mainID
- 			switch (header->mainID) {
- 			case Game::Common::MAINID::MAIN_MESSAGE_CLIENT_TO_PROXY: {
- 				//网关服(Gateway)
- 				switch (header->enctype) {
-				case packet::PUBENC_PROTOBUF_NONE: {
-					//NONE
-					TraceMessageID(header->mainID, header->subID);
-					int cmd = packet::enword(header->mainID, header->subID);
-					CmdCallbacks::const_iterator it = handlers_.find(cmd);
-					if (it != handlers_.end()) {
-						CmdCallback const& handler = it->second;
-						handler(peer, get_pointer(buf));
+			//LOG_ERROR << __FUNCTION__ << " bufsz = " << buf->readableBytes();
+			if (buf->readableBytes() < packet::kHeaderLen) {
+				//累计未处理请求数
+				numTotalBadReq_.incrementAndGet();
+				return;
+			}
+			//data, dataLen
+			uint8_t const* data = (uint8_t const*)buf->peek();
+			size_t len = buf->readableBytes();
+			//packet::header_t
+			packet::header_t* header = (packet::header_t*)(&data[0]);
+			//校验CRC header->len = packet::kHeaderLen + len
+			//header.len uint16_t
+			//header.crc uint16_t
+			//header.ver ~ header.realsize + protobuf
+			uint16_t crc = packet::getCheckSum(&data[4], /*header->len*/len - 4);
+			if (header->len == len &&
+				header->crc == crc &&
+				header->ver == 1 &&
+				header->sign == HEADER_SIGN) {
+				//mainID
+				switch (header->mainID) {
+				case Game::Common::MAINID::MAIN_MESSAGE_CLIENT_TO_PROXY: {
+					//网关服(Gateway)
+					switch (header->enctype) {
+					case packet::PUBENC_PROTOBUF_NONE: {
+						//NONE
+						TraceMessageID(header->mainID, header->subID);
+						int cmd = packet::enword(header->mainID, header->subID);
+						CmdCallbacks::const_iterator it = handlers_.find(cmd);
+						if (it != handlers_.end()) {
+							CmdCallback const& handler = it->second;
+							handler(peer, get_pointer(buf));
+						}
+						break;
+					}
+					case packet::PUBENC_PROTOBUF_RSA: {
+						//RSA
+						TraceMessageID(header->mainID, header->subID);
+						break;
+					}
+					case packet::PUBENC_PROTOBUF_AES: {
+						//AES
+						TraceMessageID(header->mainID, header->subID);
+						break;
+					}
+					default: {
+						//累计未处理请求数
+						numTotalBadReq_.incrementAndGet();
+						break;
+					}
 					}
 					break;
 				}
-				case packet::PUBENC_PROTOBUF_RSA: {
-					//RSA
+				case Game::Common::MAINID::MAIN_MESSAGE_CLIENT_TO_HALL: {
+					//大厅服(HallS)
 					TraceMessageID(header->mainID, header->subID);
+					{
+						ContextPtr entryContext(boost::any_cast<ContextPtr>(peer->getContext()));
+						assert(entryContext);
+						//userid
+						int64_t userid = entryContext->getUserID();
+						//clientip
+						uint32_t clientip = entryContext->getFromIp();
+						//session
+						std::string const& session = entryContext->getSession();
+						//aeskey
+						std::string const& aeskey = entryContext->getAesKey();
+						ClientConn const& clientConn = entryContext->getClientConn(servTyE::kHallTy);
+						muduo::net::TcpConnectionPtr hallConn(clientConn.second.lock());
+						assert(header->len == len);
+						assert(header->len >= packet::kHeaderLen);
+#if 0
+						//////////////////////////////////////////////////////////////////////////
+						//玩家登陆网关服信息
+						//使用hash	h.usr:proxy[1001] = session|ip:port:port:pid<弃用>
+						//使用set	s.uid:1001:proxy = session|ip:port:port:pid<使用>
+						//网关服ID格式：session|ip:port:port:pid
+						//第一个ip:port是网关服监听客户端的标识
+						//第二个ip:port是网关服监听订单服的标识
+						//pid标识网关服进程id
+						//////////////////////////////////////////////////////////////////////////
+						//网关服servid session|ip:port:port:pid
+						std::string const& servid = nodeValue_;
+#endif
+						BufferPtr buffer = packet::packMessage(
+							userid,
+							session,
+							aeskey,
+							clientip,
+							0,
+#if 0
+							servid,
+#endif
+							buf->peek(),
+							header->len);
+						if (buffer) {
+							//发送大厅消息
+							sendHallMessage(entryContext, buffer, userid);
+						}
+					}
 					break;
 				}
- 				case packet::PUBENC_PROTOBUF_AES: {
- 					//AES
+				case Game::Common::MAINID::MAIN_MESSAGE_CLIENT_TO_GAME_SERVER:
+				case Game::Common::MAINID::MAIN_MESSAGE_CLIENT_TO_GAME_LOGIC: {
+					//游戏服(GameS)
+					//逻辑服(LogicS，逻辑子游戏libGame_xxx.so)
 					TraceMessageID(header->mainID, header->subID);
- 					break;
- 				}
+					{
+						ContextPtr entryContext(boost::any_cast<ContextPtr>(peer->getContext()));
+						assert(entryContext);
+						//userid
+						int64_t userid = entryContext->getUserID();
+						//clientip
+						uint32_t clientip = entryContext->getFromIp();
+						//session
+						std::string const& session = entryContext->getSession();
+						//aeskey
+						std::string const& aeskey = entryContext->getAesKey();
+						ClientConn const& clientConn = entryContext->getClientConn(servTyE::kHallTy);
+						muduo::net::TcpConnectionPtr hallConn(clientConn.second.lock());
+						assert(header->len == len);
+						assert(header->len >= packet::kHeaderLen);
+#if 0
+						//////////////////////////////////////////////////////////////////////////
+						//玩家登陆网关服信息
+						//使用hash	h.usr:proxy[1001] = session|ip:port:port:pid<弃用>
+						//使用set	s.uid:1001:proxy = session|ip:port:port:pid<使用>
+						//网关服ID格式：session|ip:port:port:pid
+						//第一个ip:port是网关服监听客户端的标识
+						//第二个ip:port是网关服监听订单服的标识
+						//pid标识网关服进程id
+						//////////////////////////////////////////////////////////////////////////
+						//网关服servid session|ip:port:port:pid
+						std::string const& servid = nodeValue_;
+#endif
+						BufferPtr buffer = packet::packMessage(
+							userid,
+							session,
+							aeskey,
+							clientip,
+							0,
+#if 0
+							servid,
+#endif
+							buf->peek(),
+							header->len);
+						if (buffer) {
+							//发送游戏消息
+							sendGameMessage(entryContext, buffer, userid);
+						}
+					}
+					break;
+				}
 				default: {
 					//累计未处理请求数
 					numTotalBadReq_.incrementAndGet();
 					break;
 				}
- 				}
- 				break;
- 			}
-			case Game::Common::MAINID::MAIN_MESSAGE_CLIENT_TO_HALL: {
-				//大厅服(HallS)
-				TraceMessageID(header->mainID, header->subID);
-				{
-					ContextPtr entryContext(boost::any_cast<ContextPtr>(peer->getContext()));
-					assert(entryContext);
-					//userid
-					int64_t userid = entryContext->getUserID();
-					//clientip
-					uint32_t clientip = entryContext->getFromIp();
-					//session
-					std::string const& session = entryContext->getSession();
-					//aeskey
-					std::string const& aeskey = entryContext->getAesKey();
-					ClientConn const& clientConn = entryContext->getClientConn(servTyE::kHallTy);
-					muduo::net::TcpConnectionPtr hallConn(clientConn.second.lock());
-					assert(header->len == len);
-					assert(header->len >= packet::kHeaderLen);
-#if 0
-					//////////////////////////////////////////////////////////////////////////
-					//玩家登陆网关服信息
-					//使用hash	h.usr:proxy[1001] = session|ip:port:port:pid<弃用>
-					//使用set	s.uid:1001:proxy = session|ip:port:port:pid<使用>
-					//网关服ID格式：session|ip:port:port:pid
-					//第一个ip:port是网关服监听客户端的标识
-					//第二个ip:port是网关服监听订单服的标识
-					//pid标识网关服进程id
-					//////////////////////////////////////////////////////////////////////////
-					//网关服servid session|ip:port:port:pid
-					std::string const& servid = nodeValue_;
-#endif
-					BufferPtr buffer = packet::packMessage(
-						userid,
-						session,
-						aeskey,
-						clientip,
-						0,
-#if 0
-						servid,
-#endif
-						buf->peek(),
-						header->len);
-					if (buffer) {
-						//发送大厅消息
-						sendHallMessage(entryContext, buffer, userid);
-					}
 				}
-				break;
 			}
-			case Game::Common::MAINID::MAIN_MESSAGE_CLIENT_TO_GAME_SERVER:
-			case Game::Common::MAINID::MAIN_MESSAGE_CLIENT_TO_GAME_LOGIC: {
-				//游戏服(GameS)
-				//逻辑服(LogicS，逻辑子游戏libGame_xxx.so)
-				TraceMessageID(header->mainID, header->subID);
-				{
-					ContextPtr entryContext(boost::any_cast<ContextPtr>(peer->getContext()));
-					assert(entryContext);
-					//userid
-					int64_t userid = entryContext->getUserID();
-					//clientip
-					uint32_t clientip = entryContext->getFromIp();
-					//session
-					std::string const& session = entryContext->getSession();
-					//aeskey
-					std::string const& aeskey = entryContext->getAesKey();
-					ClientConn const& clientConn = entryContext->getClientConn(servTyE::kHallTy);
-					muduo::net::TcpConnectionPtr hallConn(clientConn.second.lock());
-					assert(header->len == len);
-					assert(header->len >= packet::kHeaderLen);
-#if 0
-					//////////////////////////////////////////////////////////////////////////
-					//玩家登陆网关服信息
-					//使用hash	h.usr:proxy[1001] = session|ip:port:port:pid<弃用>
-					//使用set	s.uid:1001:proxy = session|ip:port:port:pid<使用>
-					//网关服ID格式：session|ip:port:port:pid
-					//第一个ip:port是网关服监听客户端的标识
-					//第二个ip:port是网关服监听订单服的标识
-					//pid标识网关服进程id
-					//////////////////////////////////////////////////////////////////////////
-					//网关服servid session|ip:port:port:pid
-					std::string const& servid = nodeValue_;
-#endif
-					BufferPtr buffer = packet::packMessage(
-						userid,
-						session,
-						aeskey,
-						clientip,
-						0,
-#if 0
-						servid,
-#endif
-						buf->peek(),
-						header->len);
-					if (buffer) {
-						//发送游戏消息
-						sendGameMessage(entryContext, buffer, userid);
-					}
-				}
-				break;
-			}
-			default: {
+			else {
 				//累计未处理请求数
 				numTotalBadReq_.incrementAndGet();
-				break;
 			}
- 			}
-			return;
- 		}
+		}
+		else {
+			//累计未处理请求数
+			numTotalBadReq_.incrementAndGet();
+			//LOG_ERROR << __FUNCTION__ << " --- *** " << "TcpConnectionPtr.conn invalid";
+		}
 	}
-	//累计未处理请求数
-	numTotalBadReq_.incrementAndGet();
+	else {
+		//累计未处理请求数
+		numTotalBadReq_.incrementAndGet();
+		//LOG_ERROR << __FUNCTION__ << " --- *** " << "entry invalid";
+	}
 }
 
 //网关服[S]端 <- 客户端[C]端，websocket

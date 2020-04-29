@@ -54,37 +54,19 @@ enum servTyE {
 //@@ Entry 避免恶意连接占用系统sockfd资源不请求处理也不关闭fd情况，超时强行关闭连接
 struct Entry : public muduo::noncopyable {
 public:
-	explicit Entry(const muduo::net::WeakTcpConnectionPtr& weakConn)
-		: weakConn_(weakConn) {
+	enum TypeE { HttpTy, TcpTy };
+	explicit Entry(TypeE ty,
+		const muduo::net::WeakTcpConnectionPtr& weakConn,
+		std::string const& peerName, std::string const& localName)
+		: ty_(ty), weakConn_(weakConn)
+		, peerName_(peerName), localName_(localName) {
 	}
 	inline muduo::net::WeakTcpConnectionPtr const& getWeakConnPtr() {
 		return weakConn_;
 	}
-#if 0
-	~Entry() {
-		muduo::net::TcpConnectionPtr conn(weakConn_.lock());
-		if (conn) {
-			conn->getLoop()->assertInLoopThread();
-			LOG_WARN << __FUNCTION__ << " Entry::dtor";
-#ifdef _DEBUG_BUCKETS_
-			LOG_WARN << __FUNCTION__ << " 客户端[" << conn->peerAddress().toIpPort() << "] -> 网关服["
-				<< conn->localAddress().toIpPort() << "] timeout closing";
-#endif
-#if 0
-			//不再发送数据
-			conn->shutdown();
-#elif 1
-			//直接强制关闭连接
-			conn->forceClose();
-#else
-			//延迟0.2s强制关闭连接
-			conn->forceCloseWithDelay(0.2f);
-#endif
-		}
-	}
-#else
 	~Entry();
-#endif
+	TypeE ty_;
+	std::string peerName_, localName_;
 	muduo::net::WeakTcpConnectionPtr weakConn_;
 };
 
