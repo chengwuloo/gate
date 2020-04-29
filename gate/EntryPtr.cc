@@ -13,7 +13,7 @@ static void setFailedResponse(muduo::net::HttpResponse& rsp,
 	std::string const& msg = "") {
 	rsp.setStatusCode(code);
 	rsp.setStatusMessage("OK");
-	rsp.addHeader("Server", "TXQP");
+	rsp.addHeader("Server", "MUDUO");
 #if 0
 	rsp.setContentType("text/html;charset=utf-8");
 	rsp.setBody("<html><body>" + msg + "</body></html>");
@@ -117,13 +117,14 @@ Entry::~Entry() {
 			//////////////////////////////////////////////////////////////////////////
 			//业务处理完毕，连接被提前关闭，响应客户端时间(<timeout)
 			//////////////////////////////////////////////////////////////////////////
-			LOG_WARN << __FUNCTION__ << " Entry::dtor - ahead of finished processing";
+			//LOG_WARN << __FUNCTION__ << " Entry::dtor - ahead of finished processing";
 			break;
 		}
 		default: {
 			//////////////////////////////////////////////////////////////////////////
 			//其它非法原因，连接被提前关闭，响应客户端时间(<timeout)
 			//////////////////////////////////////////////////////////////////////////
+			LOG_WARN << __FUNCTION__ << " Entry::dtor - unknown closed";
 			break;
 		}
 		}
