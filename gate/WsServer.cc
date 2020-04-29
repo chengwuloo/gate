@@ -170,7 +170,7 @@ void Gateway::onConnected(
 	ContextPtr entryContext(boost::any_cast<ContextPtr>(conn->getContext()));
 	assert(entryContext);
 	{
-		//保存conn真实ipaddr到Entry::Context上下文
+		//保存conn真实ipaddr到ContextPtr上下文
 		muduo::net::InetAddress address(ipaddr, 0);
 		entryContext->setFromIp(address.ipNetEndian());
 	}
@@ -281,6 +281,7 @@ void Gateway::onMessage(
 		}
 		//累计未处理请求数
 		numTotalBadReq_.incrementAndGet();
+		LOG_ERROR << __FUNCTION__ << " --- *** " << "entry invalid";
 	}
 }
 

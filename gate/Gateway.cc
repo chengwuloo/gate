@@ -166,7 +166,7 @@ bool Gateway::initRedisCluster(std::string const& ipaddr, std::string const& pas
 	redisIpaddr_ = ipaddr;
 	redisPasswd_ = passwd;
 	//跨网关顶号处理(异地登陆)
-	redisClient_->subscribeUserLoginMessage(bind(&Gateway::onUserLoginNotify, this, std::placeholders::_1));
+	redisClient_->subscribeUserLoginMessage(std::bind(&Gateway::onUserLoginNotify, this, std::placeholders::_1));
 	//跑马灯通告消息
 	redisClient_->subscribePublishMsg(1, CALLBACK_1(Gateway::onMarqueeNotify, this));
 	//幸运转盘消息
