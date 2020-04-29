@@ -79,7 +79,7 @@ Entry::~Entry() {
 	//   (此时早已连接超时，并已弹出bucket，引用计数递减但不等于0，因为业务处理函数持有EntryPtr，锁定了同步业务操作，直到业务处理完毕，引用计数递减为0触发析构)
 	muduo::net::TcpConnectionPtr conn(weakConn_.lock());
 	if (conn) {
-		conn->getLoop()->assertInLoopThread();
+		//conn->getLoop()->assertInLoopThread();
 		
 		ContextPtr entryContext(boost::any_cast<ContextPtr>(conn->getContext()));
 		assert(entryContext);
