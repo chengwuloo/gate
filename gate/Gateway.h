@@ -255,7 +255,9 @@ private:
 	void onHttpMessage(const muduo::net::TcpConnectionPtr& conn, muduo::net::Buffer* buf, muduo::Timestamp receiveTime);
 
 	void asyncHttpHandler(WeakEntryPtr const& weakEntry, muduo::Timestamp receiveTime);
-	
+
+	void onHttpWriteComplete(const muduo::net::TcpConnectionPtr& conn);
+
 	static std::string getRequestStr(muduo::net::HttpRequest const& req);
 	
 	static bool parseQuery(std::string const& queryStr, HttpParams& params, std::string& errmsg);

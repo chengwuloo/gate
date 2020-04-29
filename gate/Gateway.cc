@@ -88,7 +88,9 @@ Gateway::Gateway(muduo::net::EventLoop* loop,
 	httpServer_.setMessageCallback(
 		std::bind(&Gateway::onHttpMessage, this,
 			std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	
+	httpServer_.setWriteCompleteCallback(
+		std::bind(&Gateway::onHttpWriteComplete, this, std::placeholders::_1));
+
 	//网关服[C]端 -> 大厅服[S]端，内部交互
 	hallClients_.setConnectionCallback(
 		std::bind(&Gateway::onHallConnection, this, std::placeholders::_1));

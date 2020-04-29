@@ -58,14 +58,18 @@ public:
 	explicit Entry(TypeE ty,
 		const muduo::net::WeakTcpConnectionPtr& weakConn,
 		std::string const& peerName, std::string const& localName)
-		: ty_(ty), weakConn_(weakConn)
+		: ty_(ty), locked_(false), weakConn_(weakConn)
 		, peerName_(peerName), localName_(localName) {
 	}
+	~Entry();
 	inline muduo::net::WeakTcpConnectionPtr const& getWeakConnPtr() {
 		return weakConn_;
 	}
-	~Entry();
+	//锁定同步业务操作
+	inline void setLocked() { locked_ = true; }
+	inline bool getLocked() { return locked_; }
 	TypeE ty_;
+	bool locked_;
 	std::string peerName_, localName_;
 	muduo::net::WeakTcpConnectionPtr weakConn_;
 };

@@ -26,7 +26,7 @@ static void setFailedResponse(muduo::net::HttpResponse& rsp,
 #endif
 }
 
-static inline void onTimeout(const muduo::net::TcpConnectionPtr& conn, Entry::TypeE ty) {
+static inline void onTimeoutExpired(const muduo::net::TcpConnectionPtr& conn, Entry::TypeE ty) {
 	switch (ty) {
 	case Entry::TypeE::HttpTy: {
 		//HTTP应答包(header/body)
@@ -79,19 +79,14 @@ Entry::~Entry() {
 	muduo::net::TcpConnectionPtr conn(weakConn_.lock());
 	if (conn) {
 		conn->getLoop()->assertInLoopThread();
+		
 		ContextPtr entryContext(boost::any_cast<ContextPtr>(conn->getContext()));
 		assert(entryContext);
-		if (entryContext->getSession().empty()) {
-			//////////////////////////////////////////////////////////////////////////
-			//已经连接超时，没有业务处理，响应客户端时间(<timeout)
-			//////////////////////////////////////////////////////////////////////////
-			LOG_WARN << __FUNCTION__ << " "
-				<< peerName_ << "[" << conn->peerAddress().toIpPort() << "] -> "
-				<< localName_ << "[" << conn->localAddress().toIpPort() << "] Entry::dtor["
-				<< entryContext->getSession() << "] timeout closing";
-			onTimeout(conn, ty_);
-		}
-		else {
+		//assert(!entryContext->getSession().empty());
+		
+		//判断是否锁定了同步业务操作
+		switch (getLocked()) {
+		case true: {
 			//////////////////////////////////////////////////////////////////////////
 			//早已连接超时，业务处理完毕，响应客户端时间(>timeout)
 			//////////////////////////////////////////////////////////////////////////
@@ -99,6 +94,20 @@ Entry::~Entry() {
 				<< peerName_ << "[" << conn->peerAddress().toIpPort() << "] -> "
 				<< localName_ << "[" << conn->localAddress().toIpPort() << "] Entry::dtor["
 				<< entryContext->getSession() << "] finished processing";
+			break;
+		}
+		default: {
+			//////////////////////////////////////////////////////////////////////////
+			//已经连接超时，没有业务处理，响应客户端时间(<timeout)
+			//////////////////////////////////////////////////////////////////////////
+			LOG_WARN << __FUNCTION__ << " "
+				<< peerName_ << "[" << conn->peerAddress().toIpPort() << "] -> "
+				<< localName_ << "[" << conn->localAddress().toIpPort() << "] Entry::dtor["
+				<< entryContext->getSession() << "] timeout closing";
+			//连接超时过期处理
+			onTimeoutExpired(conn, ty_);
+			break;
+		}
 		}
 	}
 	else {

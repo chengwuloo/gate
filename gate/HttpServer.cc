@@ -87,13 +87,6 @@ void Gateway::onHttpConnection(const muduo::net::TcpConnectionPtr& conn) {
 
 		//最大连接数限制
 		if (num > kMaxConnections_) {
-#if 0
-			//不再发送数据
-			conn->shutdown();
-#elif 0
-			//直接强制关闭连接
-			conn->forceClose();
-#else
 			//HTTP应答包(header/body)
 			muduo::net::HttpResponse rsp(false);
 			setFailedResponse(rsp,
@@ -101,8 +94,15 @@ void Gateway::onHttpConnection(const muduo::net::TcpConnectionPtr& conn) {
 				"HTTP/1.1 600 访问量限制(" + std::to_string(kMaxConnections_) + ")\r\n\r\n");
 			muduo::net::Buffer buf;
 			rsp.appendToBuffer(&buf);
+			//发送完毕，关闭连接
 			conn->send(&buf);
-
+#if 0
+			//不再发送数据
+			conn->shutdown();
+#elif 0
+			//直接强制关闭连接
+			conn->forceClose();
+#elif 0
 			//延迟0.2s强制关闭连接
 			conn->forceCloseWithDelay(0.2f);
 #endif
@@ -240,7 +240,7 @@ void Gateway::onHttpMessage(
 #elif 1
 				//直接强制关闭连接
 				conn->forceClose();
-#else
+#elif 0
 				//HTTP应答包(header/body)
 				muduo::net::HttpResponse rsp(false);
 				setFailedResponse(rsp,
@@ -295,6 +295,7 @@ void Gateway::onHttpMessage(
 		"HTTP/1.1 400 Bad Request\r\n\r\n");
 	muduo::net::Buffer buffer;
 	rsp.appendToBuffer(&buffer);
+	//发送完毕，关闭连接
 	conn->send(&buffer);
 	//释放HttpContext资源
 	httpContext->reset();
@@ -304,7 +305,7 @@ void Gateway::onHttpMessage(
 #elif 0
 	//直接强制关闭连接
 	conn->forceClose();
-#else
+#elif 0
 	//延迟0.2s强制关闭连接
 	conn->forceCloseWithDelay(0.2f);
 #endif
@@ -323,10 +324,11 @@ void Gateway::asyncHttpHandler(WeakEntryPtr const& weakEntry, muduo::Timestamp r
 	//锁定同步业务操作，先锁超时对象entry，再锁conn，避免超时和业务同时处理的情况
 	EntryPtr entry(weakEntry.lock());
 	if (entry) {
+		entry->setLocked();
 		muduo::net::TcpConnectionPtr conn(entry->getWeakConnPtr().lock());
 		if (conn) {
 			//LOG_ERROR << __FUNCTION__ << " bufsz = " << buf->readableBytes();
-#if 1
+#if 0
 			//Accept时候判断，socket底层控制，否则开启异步检查
 			if (whiteListControl_ == IpVisitCtrlE::kOpen) {
 				bool is_ip_allowed = false;
@@ -377,6 +379,7 @@ void Gateway::asyncHttpHandler(WeakEntryPtr const& weakEntry, muduo::Timestamp r
 			{
 				muduo::net::Buffer buf;
 				rsp.appendToBuffer(&buf);
+				//发送完毕，关闭连接
 				conn->send(&buf);
 			}
 			//非HTTP长连接则关闭
@@ -387,7 +390,7 @@ void Gateway::asyncHttpHandler(WeakEntryPtr const& weakEntry, muduo::Timestamp r
 #elif 0
 				//直接强制关闭连接
 				conn->forceClose();
-#else
+#elif 0
 				//延迟0.2s强制关闭连接
 				conn->forceCloseWithDelay(0.2f);
 #endif
@@ -406,6 +409,22 @@ void Gateway::asyncHttpHandler(WeakEntryPtr const& weakEntry, muduo::Timestamp r
 		numTotalBadReq_.incrementAndGet();
 		//LOG_ERROR << __FUNCTION__ << " --- *** " << "entry invalid";
 	}
+}
+
+//网关服[S]端 <- HTTP客户端[C]端，WEB前端
+void Gateway::onHttpWriteComplete(const muduo::net::TcpConnectionPtr& conn) {
+	LOG_WARN << __FUNCTION__;
+	conn->getLoop()->assertInLoopThread();
+#if 0
+	//不再发送数据
+	conn->shutdown();
+#elif 1
+	//直接强制关闭连接
+	conn->forceClose();
+#else
+	//延迟0.2s强制关闭连接
+	conn->forceCloseWithDelay(0.1f);
+#endif
 }
 
 //网关服[S]端 <- HTTP客户端[C]端，WEB前端
