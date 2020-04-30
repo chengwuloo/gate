@@ -277,11 +277,14 @@ void Gateway::onMessage(
 						&Gateway::asyncClientHandler,
 						this, entryContext->getWeakEntryPtr(), buffer, receiveTime));
 			}
-			return;
 		}
-		//累计未处理请求数
-		numTotalBadReq_.incrementAndGet();
-		LOG_ERROR << __FUNCTION__ << " --- *** " << "entry invalid";
+		else {
+			//timeout过期，entry失效，服务端要主动关闭sockfd，让客户的发起断线重连
+			//Entry::dtor 析构调用
+			//累计未处理请求数
+			numTotalBadReq_.incrementAndGet();
+			LOG_ERROR << __FUNCTION__ << " --- *** " << "entry invalid";
+		}
 	}
 }
 

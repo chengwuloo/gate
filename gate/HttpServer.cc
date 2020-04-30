@@ -280,11 +280,12 @@ void Gateway::onHttpMessage(
 						&Gateway::asyncHttpHandler,
 						this, entryContext->getWeakEntryPtr(), receiveTime));
 			}
-			return;
 		}
-		//累计未处理请求数
-		numTotalBadReq_.incrementAndGet();
-		LOG_ERROR << __FUNCTION__ << " --- *** " << "entry invalid";
+		else {
+			//累计未处理请求数
+			numTotalBadReq_.incrementAndGet();
+			LOG_ERROR << __FUNCTION__ << " --- *** " << "entry invalid";
+		}
 		return;
 	}
 	//发生错误
