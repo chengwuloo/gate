@@ -199,7 +199,7 @@ void Gateway::onMessage(
 	const muduo::net::TcpConnectionPtr& conn,
 	muduo::net::Buffer* buf, int msgType,
 	muduo::Timestamp receiveTime) {
-	LOG_ERROR << __FUNCTION__ << " bufsz = " << buf->readableBytes();
+	//LOG_ERROR << __FUNCTION__ << " bufsz = " << buf->readableBytes();
 	//超过最大连接数限制
 	if (!conn || conn->getContext().empty()) {
 		return;

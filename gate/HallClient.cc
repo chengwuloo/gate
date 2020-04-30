@@ -304,7 +304,7 @@ void Gateway::sendHallMessage(
 void Gateway::sendHallMessage(
 	ContextPtr const& entryContext,
 	BufferPtr& buf, int64_t userid) {
-	printf("%s %s(%d)\n", __FUNCTION__, __FILE__, __LINE__);
+	//printf("%s %s(%d)\n", __FUNCTION__, __FILE__, __LINE__);
 	if (entryContext) {
 		//printf("%s %s(%d)\n", __FUNCTION__, __FILE__, __LINE__);
 		ClientConn const& clientConn = entryContext->getClientConn(servTyE::kHallTy);
