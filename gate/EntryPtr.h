@@ -66,7 +66,7 @@ public:
 		return weakConn_;
 	}
 	//锁定同步业务操作
-	inline void setLocked() { locked_ = true; }
+	inline void setLocked(bool locked = true) { locked_ = locked; }
 	inline bool getLocked() { return locked_; }
 	TypeE ty_;
 	bool locked_;

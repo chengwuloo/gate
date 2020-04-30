@@ -299,7 +299,7 @@ void Gateway::asyncClientHandler(
 	//锁定同步业务操作，先锁超时对象entry，再锁conn，避免超时和业务同时处理的情况
 	EntryPtr entry(weakEntry.lock());
 	if (entry) {
-		entry->setLocked();
+		//entry->setLocked();
 		muduo::net::TcpConnectionPtr peer(entry->getWeakConnPtr().lock());
 		if (peer) {
 			//LOG_ERROR << __FUNCTION__ << " bufsz = " << buf->readableBytes();
@@ -473,6 +473,7 @@ void Gateway::asyncClientHandler(
 			numTotalBadReq_.incrementAndGet();
 			//LOG_ERROR << __FUNCTION__ << " --- *** " << "TcpConnectionPtr.conn invalid";
 		}
+		//entry->setLocked(false);
 	}
 	else {
 		//累计未处理请求数
