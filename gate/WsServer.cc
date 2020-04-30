@@ -279,7 +279,7 @@ void Gateway::onMessage(
 			}
 		}
 		else {
-			//timeout过期，entry失效，服务端要主动关闭sockfd，让客户的发起断线重连
+			//timeout过期，entry失效，服务端要主动关闭sockfd，让客户端释放sockfd资源，并发起断线重连
 			//Entry::dtor 析构调用
 			//累计未处理请求数
 			numTotalBadReq_.incrementAndGet();
@@ -474,14 +474,16 @@ void Gateway::asyncClientHandler(
 		else {
 			//累计未处理请求数
 			numTotalBadReq_.incrementAndGet();
-			//LOG_ERROR << __FUNCTION__ << " --- *** " << "TcpConnectionPtr.conn invalid";
+			LOG_ERROR << __FUNCTION__ << " --- *** " << "TcpConnectionPtr.conn invalid";
 		}
 		//entry->setLocked(false);
 	}
 	else {
+		//timeout过期，entry失效，服务端要主动关闭sockfd，让客户端释放sockfd资源，并发起断线重连
+		//Entry::dtor 析构调用
 		//累计未处理请求数
 		numTotalBadReq_.incrementAndGet();
-		//LOG_ERROR << __FUNCTION__ << " --- *** " << "entry invalid";
+		LOG_ERROR << __FUNCTION__ << " --- *** " << "entry invalid";
 	}
 }
 
