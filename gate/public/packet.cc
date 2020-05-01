@@ -12,7 +12,7 @@ namespace packet {
 			memcpy(buffer->beginWrite() + packet::kHeaderLen, data, len);
 		}
 		{
-			//ÃüÁîÏûÏ¢Í·header_t
+			//å‘½ä»¤æ¶ˆæ¯å¤´header_t
 			packet::header_t* header = (packet::header_t*)buffer->beginWrite();
 			header->len = packet::kHeaderLen + len;
 			header->ver = 1;
@@ -23,7 +23,7 @@ namespace packet {
 			header->reserved = 0;
 			header->reqID = 0;
 			header->realsize = len;
-			//CRCĞ£ÑéÎ» header->len = packet::kHeaderLen + len
+			//CRCæ ¡éªŒä½ header->len = packet::kHeaderLen + len
 			//header.len uint16_t
 			//header.crc uint16_t
 			//header.ver ~ header.realsize + protobuf
@@ -33,7 +33,7 @@ namespace packet {
 	}
 	//pack data[len] to buffer with packet::header_t
 	BufferPtr packMessage(int mainID, int subID, char const* data, size_t len) {
-		//ÃüÁîÏûÏ¢Í·header_t + len
+		//å‘½ä»¤æ¶ˆæ¯å¤´header_t + len
 		BufferPtr buffer(new muduo::net::Buffer(packet::kHeaderLen + len));
 		packMessage(buffer.get(), mainID, subID, data, len);
 		return buffer;
@@ -52,7 +52,7 @@ namespace packet {
 			}
 		}
 		{
-			//ÃüÁîÏûÏ¢Í·header_t
+			//å‘½ä»¤æ¶ˆæ¯å¤´header_t
 			packet::header_t* header = (packet::header_t*)buffer->beginWrite();
 			header->len = packet::kHeaderLen + len;
 			header->ver = 1;
@@ -63,7 +63,7 @@ namespace packet {
 			header->reserved = 0;
 			header->reqID = 0;
 			header->realsize = len;
-			//CRCĞ£ÑéÎ» header->len = packet::kHeaderLen + len
+			//CRCæ ¡éªŒä½ header->len = packet::kHeaderLen + len
 			//header.len uint16_t
 			//header.crc uint16_t
 			//header.ver ~ header.realsize + protobuf
@@ -76,7 +76,7 @@ namespace packet {
 	BufferPtr packMessage(int mainID, int subID, ::google::protobuf::Message* data) {
 		//protobuf
 		size_t len = data ? data->ByteSizeLong() : 0;
-		//ÃüÁîÏûÏ¢Í·header_t + len
+		//å‘½ä»¤æ¶ˆæ¯å¤´header_t + len
 		BufferPtr buffer(new muduo::net::Buffer(packet::kHeaderLen + len));
 		if (!packMessage(buffer.get(), mainID, subID, data)) {
 			buffer.reset();
@@ -103,7 +103,7 @@ namespace packet {
 		//buffer[packet::kPrevHeaderLen]
 		memcpy(buffer->beginWrite() + packet::kPrevHeaderLen, data, len);
 		{
-			//ÄÚ²¿ÏûÏ¢Í·internal_prev_header_t
+			//å†…éƒ¨æ¶ˆæ¯å¤´internal_prev_header_t
 			packet::internal_prev_header_t* pre_header = (packet::internal_prev_header_t*)buffer->beginWrite();
 			memset(pre_header, 0, packet::kPrevHeaderLen);
 			pre_header->len = packet::kPrevHeaderLen + len;
@@ -140,7 +140,7 @@ namespace packet {
 		std::string const& servid,
 #endif
 		char const* data, size_t len) {
-		//ÄÚ²¿ÏûÏ¢Í·internal_prev_header_t + len
+		//å†…éƒ¨æ¶ˆæ¯å¤´internal_prev_header_t + len
 		BufferPtr buffer(new muduo::net::Buffer(packet::kPrevHeaderLen + len));
 		packMessage(buffer.get(), userid, session, aeskey, clientip, kicking,
 #if 0
@@ -170,7 +170,7 @@ namespace packet {
 			memcpy(buffer->beginWrite() + packet::kPrevHeaderLen + packet::kHeaderLen, data, len);
 		}
 		{
-			//ÄÚ²¿ÏûÏ¢Í·internal_prev_header_t
+			//å†…éƒ¨æ¶ˆæ¯å¤´internal_prev_header_t
 			packet::internal_prev_header_t* pre_header = (packet::internal_prev_header_t*)buffer->beginWrite();
 			memset(pre_header, 0, packet::kPrevHeaderLen + packet::kHeaderLen);
 			pre_header->len = packet::kPrevHeaderLen + packet::kHeaderLen + len;
@@ -195,8 +195,8 @@ namespace packet {
 			packet::setCheckSum(pre_header);
 		}
 		{
-			//ÃüÁîÏûÏ¢Í·header_t
-			packet::header_t* header = (packet::header_t*)buffer->beginWrite() + packet::kPrevHeaderLen;
+			//å‘½ä»¤æ¶ˆæ¯å¤´header_t
+			packet::header_t* header = (packet::header_t*)(buffer->beginWrite() + packet::kPrevHeaderLen);
 			header->len = packet::kHeaderLen + len;
 			header->ver = 1;
 			header->sign = HEADER_SIGN;
@@ -206,7 +206,7 @@ namespace packet {
 			header->reserved = 0;
 			header->reqID = 0;
 			header->realsize = len;
-			//CRCĞ£ÑéÎ» header->len = packet::kHeaderLen + len
+			//CRCæ ¡éªŒä½ header->len = packet::kHeaderLen + len
 			//header.len uint16_t
 			//header.crc uint16_t
 			//header.ver ~ header.realsize + protobuf
@@ -226,7 +226,7 @@ namespace packet {
 #endif
 		int mainID, int subID,
 		char const* data, size_t len) {
-		//ÄÚ²¿ÏûÏ¢Í·internal_prev_header_t + ÃüÁîÏûÏ¢Í·header_t + len
+		//å†…éƒ¨æ¶ˆæ¯å¤´internal_prev_header_t + å‘½ä»¤æ¶ˆæ¯å¤´header_t + len
 		BufferPtr buffer(new muduo::net::Buffer(packet::kPrevHeaderLen + packet::kHeaderLen + len));
 		packMessage(buffer.get(), userid, session, aeskey, clientip, kicking,
 #if 0
@@ -260,7 +260,7 @@ namespace packet {
 			}
 		}
 		{
-			//ÄÚ²¿ÏûÏ¢Í·internal_prev_header_t
+			//å†…éƒ¨æ¶ˆæ¯å¤´internal_prev_header_t
 			packet::internal_prev_header_t* pre_header = (packet::internal_prev_header_t*)buffer->beginWrite();
 			memset(pre_header, 0, packet::kPrevHeaderLen + packet::kHeaderLen);
 			pre_header->len = packet::kPrevHeaderLen + packet::kHeaderLen + len;
@@ -285,8 +285,8 @@ namespace packet {
 			packet::setCheckSum(pre_header);
 		}
 		{
-			//ÃüÁîÏûÏ¢Í·header_t
-			packet::header_t* header = (packet::header_t*)buffer->beginWrite() + packet::kPrevHeaderLen;
+			//å‘½ä»¤æ¶ˆæ¯å¤´header_t
+			packet::header_t* header = (packet::header_t*)(buffer->beginWrite() + packet::kPrevHeaderLen);
 			header->len = packet::kHeaderLen + len;
 			header->ver = 1;
 			header->sign = HEADER_SIGN;
@@ -296,7 +296,7 @@ namespace packet {
 			header->reserved = 0;
 			header->reqID = 0;
 			header->realsize = len;
-			//CRCĞ£ÑéÎ» header->len = packet::kHeaderLen + len
+			//CRCæ ¡éªŒä½ header->len = packet::kHeaderLen + len
 			//header.len uint16_t
 			//header.crc uint16_t
 			//header.ver ~ header.realsize + protobuf
@@ -319,7 +319,7 @@ namespace packet {
 		::google::protobuf::Message* data) {
 		//protobuf
 		size_t len = data ? data->ByteSizeLong() : 0;
-		//ÄÚ²¿ÏûÏ¢Í·internal_prev_header_t + ÃüÁîÏûÏ¢Í·header_t + len
+		//å†…éƒ¨æ¶ˆæ¯å¤´internal_prev_header_t + å‘½ä»¤æ¶ˆæ¯å¤´header_t + len
 		BufferPtr buffer(new muduo::net::Buffer(packet::kPrevHeaderLen + packet::kHeaderLen + len));
 		if (!packMessage(buffer.get(), userid, session, aeskey, clientip, kicking,
 #if 0

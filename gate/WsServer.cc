@@ -187,8 +187,6 @@ void Gateway::onConnected(
 		//////////////////////////////////////////////////////////////////////////
 		//map[session] = weakConn
 		//////////////////////////////////////////////////////////////////////////
-		ContextPtr entryContext(boost::any_cast<ContextPtr>(conn->getContext()));
-		assert(entryContext);
 		entities_.add(session, muduo::net::WeakTcpConnectionPtr(conn));
 		LOG_WARN << __FUNCTION__ << " session[ " << session << " ]";
 	}
@@ -403,7 +401,7 @@ void Gateway::asyncClientHandler(
 							header->len);
 						if (buffer) {
 							//发送大厅消息
-							sendHallMessage(entryContext, buffer, userid);
+							sendHallMessage(*entryContext.get(), buffer, userid);
 						}
 					}
 					break;
@@ -454,7 +452,7 @@ void Gateway::asyncClientHandler(
 							header->len);
 						if (buffer) {
 							//发送游戏消息
-							sendGameMessage(entryContext, buffer, userid);
+							sendGameMessage(*entryContext.get(), buffer, userid);
 						}
 					}
 					break;
@@ -504,9 +502,9 @@ void Gateway::asyncOfflineHandler(ContextPtr const& entryContext) {
 			sessions_.remove(userid, session);
 		}
 		//offline hall
-		onUserOfflineHall(entryContext);
+		onUserOfflineHall(*entryContext.get());
 		//offline game
-		onUserOfflineGame(entryContext);
+		onUserOfflineGame(*entryContext.get());
 	}
 }
 

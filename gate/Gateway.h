@@ -297,13 +297,13 @@ private:
 		muduo::Timestamp receiveTime);
 
 	void sendHallMessage(
-		ContextPtr const& entryContext,
+		Context& entryContext,
 		BufferPtr& buf, int64_t userid);
 
 	//跨网关顶号处理(异地登陆)
 	void onUserLoginNotify(std::string const& msg);
 
-	void onUserOfflineHall(ContextPtr const& entryContext);
+	void onUserOfflineHall(Context& entryContext);
 
 	//网关服[C]端 -> 游戏服[S]端
 private:
@@ -319,10 +319,10 @@ private:
 		muduo::Timestamp receiveTime);
 
 	void sendGameMessage(
-		ContextPtr const& entryContext,
+		Context& entryContext,
 		BufferPtr& buf, int64_t userid);
 
-	void onUserOfflineGame(ContextPtr const& entryContext, bool leave = 0);
+	void onUserOfflineGame(Context& entryContext, bool leave = 0);
 private:
 	//监听客户端TCP请求(websocket)
 	muduo::net::TcpServer server_;

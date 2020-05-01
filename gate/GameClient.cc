@@ -183,64 +183,59 @@ void Gateway::asyncGameHandler(
 
 //网关服[C]端 -> 游戏服[S]端
 void Gateway::sendGameMessage(
-	ContextPtr const& entryContext,
+	Context& entryContext,
 	BufferPtr& buf, int64_t userid) {
 	//printf("%s %s(%d)\n", __FUNCTION__, __FILE__, __LINE__);
-	if (entryContext) {
-		//printf("%s %s(%d)\n", __FUNCTION__, __FILE__, __LINE__);
-		ClientConn const& clientConn = entryContext->getClientConn(servTyE::kGameTy);
-		muduo::net::TcpConnectionPtr gameConn(clientConn.second.lock());
-		if (gameConn) {
-			assert(gameConn->connected());
-#ifndef NDEBUG
+	ClientConn const& clientConn = entryContext.getClientConn(servTyE::kGameTy);
+	muduo::net::TcpConnectionPtr gameConn(clientConn.second.lock());
+	if (gameConn) {
+		assert(gameConn->connected());
+#if !defined(NDEBUG)
 #if 0
-			assert(
-				std::find(
-					std::begin(clients_[servTyE::kGameTy].names_),
-					std::end(clients_[servTyE::kGameTy].names_),
-					clientConn.first) != clients_[servTyE::kGameTy].names_.end());
+		assert(
+			std::find(
+				std::begin(clients_[servTyE::kGameTy].names_),
+				std::end(clients_[servTyE::kGameTy].names_),
+				clientConn.first) != clients_[servTyE::kGameTy].names_.end());
 #endif
-			clients_[servTyE::kGameTy].clients_->check(clientConn.first, true);
+		//clients_[servTyE::kGameTy].clients_->check(clientConn.first, true);
 #endif
-			if (buf) {
-				//printf("len = %d\n", buf->readableBytes());
-				gameConn->send(buf.get());
-			}
+		if (buf) {
+			//printf("len = %d\n", buf->readableBytes());
+			gameConn->send(buf.get());
 		}
 	}
 }
 
 //网关服[C]端 -> 游戏服[S]端
 void Gateway::onUserOfflineGame(
-	ContextPtr const& entryContext, bool leave) {
+	Context& entryContext, bool leave) {
 	MY_TRY()
-	if (entryContext) {
-		//userid
-		int64_t userid = entryContext->getUserID();
-		//clientip
-		uint32_t clientip = entryContext->getFromIp();
-		//session
-		std::string const& session = entryContext->getSession();
-		//aeskey
-		std::string const& aeskey = entryContext->getAesKey();
-		if (userid > 0 && !session.empty()) {
-			//packMessage
-			BufferPtr buffer = packet::packMessage(
-				userid,
-				session,
-				aeskey,
-				clientip,
-				KICK_LEAVEGS,
-				::Game::Common::MAIN_MESSAGE_PROXY_TO_GAME_SERVER,
-				::Game::Common::MESSAGE_PROXY_TO_GAME_SERVER_SUBID::GAME_SERVER_ON_USER_OFFLINE,
-				NULL);
-			if (buffer) {
-				TraceMessageID(
-					::Game::Common::MAIN_MESSAGE_PROXY_TO_GAME_SERVER,
-					::Game::Common::MESSAGE_PROXY_TO_GAME_SERVER_SUBID::GAME_SERVER_ON_USER_OFFLINE);
-				assert(buffer->readableBytes() < packet::kMaxPacketSZ);
-				sendGameMessage(entryContext, buffer, userid);
-			}
+	//userid
+	int64_t userid = entryContext.getUserID();
+	//clientip
+	uint32_t clientip = entryContext.getFromIp();
+	//session
+	std::string const& session = entryContext.getSession();
+	//aeskey
+	std::string const& aeskey = entryContext.getAesKey();
+	if (userid > 0 && !session.empty()) {
+		//packMessage
+		BufferPtr buffer = packet::packMessage(
+			userid,
+			session,
+			aeskey,
+			clientip,
+			KICK_LEAVEGS,
+			::Game::Common::MAIN_MESSAGE_PROXY_TO_GAME_SERVER,
+			::Game::Common::MESSAGE_PROXY_TO_GAME_SERVER_SUBID::GAME_SERVER_ON_USER_OFFLINE,
+			NULL);
+		if (buffer) {
+			//TraceMessageID(
+			//	::Game::Common::MAIN_MESSAGE_PROXY_TO_GAME_SERVER,
+			//	::Game::Common::MESSAGE_PROXY_TO_GAME_SERVER_SUBID::GAME_SERVER_ON_USER_OFFLINE);
+			assert(buffer->readableBytes() < packet::kMaxPacketSZ);
+			sendGameMessage(entryContext, buffer, userid);
 		}
 	}
 	MY_CATCH()
