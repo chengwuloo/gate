@@ -135,7 +135,7 @@ void Gateway::onHttpConnection(const muduo::net::TcpConnectionPtr& conn) {
 			assert(index >= 0 && index < bucketsPool_.size());
 
 			//连接成功，压入桶元素
-			conn->getLoop()->runInLoop(
+			RunInLoop(conn->getLoop(),
 				std::bind(&ConnBucket::pushBucket, bucketsPool_[index].get(), entry));
 		}
 		{
@@ -267,7 +267,7 @@ void Gateway::onHttpMessage(
 				assert(index >= 0 && index < bucketsPool_.size());
 
 				//收到消息包，更新桶元素
-				conn->getLoop()->runInLoop(std::bind(&ConnBucket::updateBucket, bucketsPool_[index].get(), entry));
+				RunInLoop(conn->getLoop(), std::bind(&ConnBucket::updateBucket, bucketsPool_[index].get(), entry));
 			}
 			{
 				//获取绑定的worker线程
@@ -620,7 +620,7 @@ void Gateway::processHttpRequest(
 void Gateway::refreshWhiteList() {
 	if (whiteListControl_ == IpVisitCtrlE::kOpenAccept) {
 		//Accept时候判断，socket底层控制，否则开启异步检查
-		httpServer_.getLoop()->runInLoop(std::bind(&Gateway::refreshWhiteListInLoop, this));
+		RunInLoop(httpServer_.getLoop(), std::bind(&Gateway::refreshWhiteListInLoop, this));
 	}
 	else if (whiteListControl_ == IpVisitCtrlE::kOpen) {
 		//同步刷新IP访问白名单

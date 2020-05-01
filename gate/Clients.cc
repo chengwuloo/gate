@@ -92,19 +92,19 @@ Connector::~Connector() {
 void Connector::add(
 	std::string const& name,
 	const muduo::net::InetAddress& serverAddr) {
-	loop_->runInLoop(
+	RunInLoop(loop_,
 		std::bind(&Connector::addInLoop, this, name, serverAddr));
 }
 
 //remove
 void Connector::remove(std::string const& name, bool lazy) {
-	loop_->runInLoop(
+	RunInLoop(loop_,
 		std::bind(&Connector::removeInLoop, this, name, lazy));
 }
 
 //check
 void Connector::check(std::string const& name, bool exist) {
-	loop_->runInLoop(
+	RunInLoop(loop_,
 		std::bind(&Connector::checkInLoop, this, name, exist));
 }
 
@@ -112,7 +112,7 @@ void Connector::check(std::string const& name, bool exist) {
 bool Connector::exists(std::string const& name) /*const*/ {
 	bool bok = false;
 	bool exist = false;
-	loop_->runInLoop(
+	RunInLoop(loop_,
 		std::bind(&Connector::existInLoop, this, name, std::ref(exist), std::ref(bok)));
 	//spin lock until asynchronous return
 	while (!bok);
@@ -123,7 +123,7 @@ bool Connector::exists(std::string const& name) /*const*/ {
 size_t const Connector::count() /*const*/ {
 	bool bok = false;
 	size_t size = 0;
-	loop_->runInLoop(
+	RunInLoop(loop_,
 		std::bind(&Connector::countInLoop, this, std::ref(size), std::ref(bok)));
 	//spin lock until asynchronous return
 	while (!bok);
@@ -133,7 +133,7 @@ size_t const Connector::count() /*const*/ {
 //get
 void Connector::get(std::string const& name, ClientConn& client) {
 	bool bok = false;
-	loop_->runInLoop(
+	RunInLoop(loop_,
 		std::bind(&Connector::getInLoop, this, name, std::ref(client), std::ref(bok)));
 	//spin lock until asynchronous return
 	while (!bok);
@@ -143,7 +143,7 @@ void Connector::get(std::string const& name, ClientConn& client) {
 void Connector::getAll(ClientConnList& clients) {
 	assert(clients.size() == 0);
 	bool bok = false;
-	loop_->runInLoop(
+	RunInLoop(loop_,
 		std::bind(&Connector::getAllInLoop, this, std::ref(clients), std::ref(bok)));
 	//spin lock until asynchronous return
 	while (!bok);
@@ -274,7 +274,7 @@ void Connector::existInLoop(std::string const& name, bool& exist, bool& bok) {
 }
 
 void Connector::closeAll() {
-	loop_->queueInLoop(
+	QueueInLoop(loop_,
 		std::bind(&Connector::closeAllInLoop, this));
 }
 
@@ -284,7 +284,7 @@ void Connector::onConnected(const muduo::net::TcpConnectionPtr& conn, const TcpC
 	
 	int32_t num = numConnected_.incrementAndGet();
 	
-	loop_->runInLoop(
+	RunInLoop(loop_,
 		std::bind(&Connector::newConnection, this, conn, client));
 }
 
@@ -301,7 +301,7 @@ void Connector::newConnection(const muduo::net::TcpConnectionPtr& conn, const Tc
 #endif
 	}
 	
-	conn->getLoop()->runInLoop(std::bind(&Connector::connectionCallback, this, conn));
+	RunInLoop(conn->getLoop(), std::bind(&Connector::connectionCallback, this, conn));
 }
 
 void Connector::onClosed(const muduo::net::TcpConnectionPtr& conn, const std::string& name) {
@@ -310,11 +310,11 @@ void Connector::onClosed(const muduo::net::TcpConnectionPtr& conn, const std::st
 	
 	int32_t num = numConnected_.decrementAndGet();
 	//if (num == 0) {
-	//	conn->getLoop()->queueInLoop(
+	//	QueueInLoop(conn->getLoop(),
 	//		std::bind(&muduo::net::EventLoop::quit, conn->getLoop()));
 	//}
 	
-	loop_->runInLoop(
+	RunInLoop(loop_,
 		std::bind(&Connector::removeConnection, this, conn, name));
 }
 
@@ -329,7 +329,7 @@ void Connector::removeConnection(const muduo::net::TcpConnectionPtr& conn, const
 			//it->second->stop();
 			//it->second.reset();
 			//clients_.erase(it);
-			loop_->queueInLoop(
+			QueueInLoop(loop_,
 				std::bind(&Connector::removeInLoop, this, name, true));
 		}
 		else {
@@ -343,7 +343,7 @@ void Connector::removeConnection(const muduo::net::TcpConnectionPtr& conn, const
 		assert(n == 1);
 #endif
 	}
-	conn->getLoop()->runInLoop(std::bind(&Connector::connectionCallback, this, conn));
+	RunInLoop(conn->getLoop(), std::bind(&Connector::connectionCallback, this, conn));
 }
 
 void Connector::connectionCallback(const muduo::net::TcpConnectionPtr& conn) {
@@ -397,7 +397,7 @@ void Connector::closeAllInLoop() {
 
 	loop_->assertInLoopThread();
 	
-	loop_->runInLoop(
+	RunInLoop(loop_,
 		std::bind(&Connector::cleanupInLoop, this));
 
 	for (TcpClientMap::const_iterator it = clients_.begin();
@@ -415,6 +415,6 @@ void Connector::onMessage(
 }
 
 //void Connector::quit() {
-//	loop_->queueInLoop(
+//	QueueInLoop(loop_,
 //		std::bind(&muduo::net::EventLoop::quit, loop_));
 //}

@@ -112,7 +112,7 @@ void Gateway::onConnection(const muduo::net::TcpConnectionPtr& conn) {
 			int index = context->getBucketIndex();
 			assert(index >= 0 && index < bucketsPool_.size());
 			//连接成功，压入桶元素
-			conn->getLoop()->runInLoop(
+			RunInLoop(conn->getLoop(),
 				std::bind(&ConnBucket::pushBucket, bucketsPool_[index].get(), entry));
 		}
 		{
@@ -250,7 +250,7 @@ void Gateway::onMessage(
 				assert(index >= 0 && index < bucketsPool_.size());
 				
 				//收到消息包，更新桶元素
-				conn->getLoop()->runInLoop(
+				RunInLoop(conn->getLoop(),
 					std::bind(&ConnBucket::updateBucket, bucketsPool_[index].get(), entry));
 			}
 			{				
@@ -577,7 +577,7 @@ void Gateway::broadcastMessage(int mainID, int subID, ::google::protobuf::Messag
 void Gateway::refreshBlackList() {
 	if (blackListControl_ == IpVisitCtrlE::kOpenAccept) {
 		//Accept时候判断，socket底层控制，否则开启异步检查
-		server_.getLoop()->runInLoop(std::bind(&Gateway::refreshBlackListInLoop, this));
+		RunInLoop(server_.getLoop(), std::bind(&Gateway::refreshBlackListInLoop, this));
 	}
 	else if (blackListControl_ == IpVisitCtrlE::kOpen) {
 		//同步刷新IP访问黑名单
