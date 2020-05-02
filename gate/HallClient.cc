@@ -484,9 +484,9 @@ void Gateway::onUserOfflineHall(Context& entryContext) {
 			::Game::Common::MESSAGE_PROXY_TO_HALL_SUBID::HALL_ON_USER_OFFLINE,
 			NULL);
 		if (buffer) {
-			//TraceMessageID(
-			//	::Game::Common::MAIN_MESSAGE_PROXY_TO_HALL,
-			//	::Game::Common::MESSAGE_PROXY_TO_HALL_SUBID::HALL_ON_USER_OFFLINE);
+			TraceMessageID(
+				::Game::Common::MAIN_MESSAGE_PROXY_TO_HALL,
+				::Game::Common::MESSAGE_PROXY_TO_HALL_SUBID::HALL_ON_USER_OFFLINE);
 			assert(buffer->readableBytes() < packet::kMaxPacketSZ);
 			sendHallMessage(entryContext, buffer, userid);
 		}

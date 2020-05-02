@@ -231,9 +231,9 @@ void Gateway::onUserOfflineGame(
 			::Game::Common::MESSAGE_PROXY_TO_GAME_SERVER_SUBID::GAME_SERVER_ON_USER_OFFLINE,
 			NULL);
 		if (buffer) {
-			//TraceMessageID(
-			//	::Game::Common::MAIN_MESSAGE_PROXY_TO_GAME_SERVER,
-			//	::Game::Common::MESSAGE_PROXY_TO_GAME_SERVER_SUBID::GAME_SERVER_ON_USER_OFFLINE);
+			TraceMessageID(
+				::Game::Common::MAIN_MESSAGE_PROXY_TO_GAME_SERVER,
+				::Game::Common::MESSAGE_PROXY_TO_GAME_SERVER_SUBID::GAME_SERVER_ON_USER_OFFLINE);
 			assert(buffer->readableBytes() < packet::kMaxPacketSZ);
 			sendGameMessage(entryContext, buffer, userid);
 		}
