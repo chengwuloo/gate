@@ -247,54 +247,51 @@ void Gateway::asyncHallHandler(
 #if 0
 //网关服[C]端 -> 大厅服[S]端
 void Gateway::sendHallMessage(
-	ContextPtr const& entryContext,
+	Context& entryContext,
 	BufferPtr& buf, int64_t userid) {
 	//printf("%s %s(%d)\n", __FUNCTION__, __FILE__, __LINE__);
-	if (entryContext) {
-		//printf("%s %s(%d)\n", __FUNCTION__, __FILE__, __LINE__);
-		ClientConn const& clientConn = entryContext->getClientConn(servTyE::kHallTy);
-		muduo::net::TcpConnectionPtr hallConn(clientConn.second.lock());
-		if (hallConn) {
-			assert(hallConn->connected());
+	ClientConn const& clientConn = entryContext.getClientConn(servTyE::kHallTy);
+	muduo::net::TcpConnectionPtr hallConn(clientConn.second.lock());
+	if (hallConn) {
+		assert(hallConn->connected());
 #if !defined(NDEBUG)
 #if 0
-			assert(
-				std::find(
-					std::begin(clients_[servTyE::kHallTy].names_),
-					std::end(clients_[servTyE::kHallTy].names_),
-					clientConn.first) != clients_[servTyE::kHallTy].names_.end());
+		assert(
+			std::find(
+				std::begin(clients_[servTyE::kHallTy].names_),
+				std::end(clients_[servTyE::kHallTy].names_),
+				clientConn.first) != clients_[servTyE::kHallTy].names_.end());
 #endif
-			//clients_[servTyE::kHallTy].clients_->check(clientConn.first, true);
+		clients_[servTyE::kHallTy].clients_->check(clientConn.first, true);
 #endif
-			if (buf) {
-				//printf("len = %d\n", buf->readableBytes());
-				hallConn->send(buf.get());
-			}
+		if (buf) {
+			//printf("len = %d\n", buf->readableBytes());
+			hallConn->send(buf.get());
 		}
-		else {
-			LOG_ERROR << __FUNCTION__ << " --- *** " << "用户大厅服失效，重新分配";
-			//用户大厅服失效，重新分配
-			ClientConnList clients;
-			//异步获取全部有效大厅连接
-			clients_[servTyE::kHallTy].clients_->getAll(clients);
-			if (clients.size() > 0) {
-				int index = randomHall_.betweenInt(0, clients.size() - 1).randInt_mt();
-				assert(index >= 0 && index < clients.size());
-				ClientConn const& clientConn = clients[index];
-				muduo::net::TcpConnectionPtr hallConn(clientConn.second.lock());
-				if (hallConn) {
-					if (entryContext->getUserID() > 0) {
-						//账号已经登陆，但登陆大厅失效了，重新指定账号登陆大厅
-						entryContext->setClientConn(servTyE::kHallTy, clientConn);
-					}
-					if (buf) {
-						//printf("len = %d\n", buf->readableBytes());
-						hallConn->send(buf.get());
-					}
+	}
+	else {
+		LOG_ERROR << __FUNCTION__ << " --- *** " << "用户大厅服失效，重新分配";
+		//用户大厅服失效，重新分配
+		ClientConnList clients;
+		//异步获取全部有效大厅连接
+		clients_[servTyE::kHallTy].clients_->getAll(clients);
+		if (clients.size() > 0) {
+			int index = randomHall_.betweenInt(0, clients.size() - 1).randInt_mt();
+			assert(index >= 0 && index < clients.size());
+			ClientConn const& clientConn = clients[index];
+			muduo::net::TcpConnectionPtr hallConn(clientConn.second.lock());
+			if (hallConn) {
+				if (entryContext.getUserID() > 0) {
+					//账号已经登陆，但登陆大厅失效了，重新指定账号登陆大厅
+					entryContext.setClientConn(servTyE::kHallTy, clientConn);
 				}
-				else {
+				if (buf) {
+					//printf("len = %d\n", buf->readableBytes());
+					hallConn->send(buf.get());
+				}
+			}
+			else {
 
-				}
 			}
 		}
 	}
@@ -320,7 +317,7 @@ void Gateway::sendHallMessage(
 					std::end(clients_[servTyE::kHallTy].clients_),
 					clientConn.first) != clients_[servTyE::kHallTy].clients_.end());
 #endif
-			//clients_[servTyE::kHallTy].clients_->check(clientConn.first, true);
+			clients_[servTyE::kHallTy].clients_->check(clientConn.first, true);
 #endif
 			if (buf) {
 				//printf("len = %d\n", buf->readableBytes());

@@ -198,7 +198,7 @@ void Gateway::sendGameMessage(
 				std::end(clients_[servTyE::kGameTy].names_),
 				clientConn.first) != clients_[servTyE::kGameTy].names_.end());
 #endif
-		//clients_[servTyE::kGameTy].clients_->check(clientConn.first, true);
+		clients_[servTyE::kGameTy].clients_->check(clientConn.first, true);
 #endif
 		if (buf) {
 			//printf("len = %d\n", buf->readableBytes());
